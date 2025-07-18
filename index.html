@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProsBe SEM Toolkit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0D1117;
+            --sidebar-color: rgba(13, 17, 23, 0.7);
+            --card-color: rgba(22, 27, 34, 0.6);
+            --border-color: rgba(139, 148, 158, 0.2);
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --accent-gradient: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899);
+        }
+        @keyframes background-pan { 0% { background-position: 0% center; } 100% { background-position: -200% center; } }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake-error { animation: shake 0.5s ease-in-out; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--accent-gradient);
+            background-size: 200%;
+            animation: background-pan 25s linear infinite;
+            filter: blur(100px);
+            opacity: 0.15;
+            z-index: 0;
+        }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+        a, button { transition: all 0.2s ease-in-out; }
+        .nav-item.active {
+            background: rgba(139, 92, 246, 0.1);
+            font-weight: 600;
+        }
+        .nav-item.active > * {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-item:not(.active):hover { background-color: rgba(139, 148, 158, 0.1); }
+        .gradient-text {
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .prose-aurora h2 {
+            font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
+            padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 1rem;
+        }
+        .prose-aurora h3 { font-size: 1.25rem; font-weight: 600; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose-aurora h3 > span {
+             background: linear-gradient(90deg, #a855f7, #ec4899);
+             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .prose-aurora p { color: #b0b8c1; line-height: 1.7; }
+        .prose-aurora strong { color: var(--text-primary); }
+        .prose-aurora ul { list-style: none; padding-left: 0; margin-top: 1rem;}
+        .prose-aurora li { position: relative; padding-left: 1.75rem; margin-bottom: 0.75rem; color: #b0b8c1; }
+        .prose-aurora li::before {
+            content: '✓';
+            position: absolute; left: 0; top: 2px; font-weight: 600;
+            color: #22d3ee;
+        }
+        .prose-aurora code {
+            background-color: rgba(139, 148, 158, 0.15);
+            color: #c9d1d9;
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            border-radius: 6px;
+        }
+        .loader {
+            width: 56px; height: 56px; border-radius: 50%; display: inline-block; position: relative;
+            border: 4px solid; border-color: #58a6ff #58a6ff transparent transparent;
+            box-sizing: border-box; animation: rotation 1s linear infinite;
+        }
+        .loader::after, .loader::before {
+            content: ''; box-sizing: border-box; position: absolute; left: 0; right: 0; top: 0; bottom: 0; margin: auto;
+            border: 4px solid; border-color: transparent transparent #ec4899 #ec4899;
+            width: 40px; height: 40px; border-radius: 50%; animation: rotationBack 0.5s linear infinite; transform-origin: center center;
+        }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes rotationBack { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+    </style>
+</head>
+<body class="antialiased">
+    <!-- Login Overlay Screen -->
+    <div id="login-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-xl z-50 flex items-center justify-center">
+        <div class="w-full max-w-sm bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-2xl shadow-black/50 p-8">
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold mb-6 gradient-text">ProsBe SEM Toolkit</h1>
+                <div class="mx-auto mb-4 inline-block p-3 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 rounded-lg">
+                    <i data-lucide="log-in" class="w-8 h-8 text-cyan-300"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white">Login Pengguna</h2>
+                <p class="text-[var(--text-secondary)] mt-1">Hanya untuk pengguna terdaftar.</p>
+            </div>
+            <form id="login-form" class="mt-6 space-y-4" autocomplete="off">
+                <div>
+                    <label for="email-input" class="text-sm font-medium text-slate-300">Email</label>
+                    <input type="email" id="email-input" name="email" required autocomplete="off" class="mt-1 w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="anda@email.com">
+                </div>
+                <div>
+                    <label for="password-input" class="text-sm font-medium text-slate-300">Password</label>
+                    <input type="password" id="password-input" name="password" required autocomplete="new-password" class="mt-1 w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="••••••••">
+                </div>
+                <p id="login-error" class="text-red-400 text-center text-sm pt-1 hidden">Email atau password salah.</p>
+                <button type="submit" id="login-button" class="!mt-6 w-full group relative inline-flex items-center justify-center px-6 py-3.5 font-semibold rounded-lg text-white overflow-hidden">
+                    <span class="absolute w-full h-full bg-[var(--accent-gradient)] bg-[200%] group-hover:bg-[100%] transition-all duration-500"></span>
+                    <i data-lucide="arrow-right" class="w-5 h-5 mr-3 relative"></i>
+                    <span class="relative">Masuk</span>
+                </button>
+                <p class="text-center text-xs text-slate-200 mt-4">Made by ProsBe</p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Application (Hidden by default) -->
+    <div id="main-app" class="relative flex h-screen w-screen hidden">
+        <aside class="w-64 flex-shrink-0 bg-[var(--sidebar-color)] backdrop-blur-xl border-r border-[var(--border-color)] p-6 flex flex-col z-10 overflow-y-auto">
+            <div class="flex items-center mb-10">
+                <div class="p-1.5 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 rounded-lg">
+                    <svg class="w-9 h-9" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                                <stop offset="0%" style="stop-color:#ec4899;" />
+                                <stop offset="50%" style="stop-color:#a855f7;" />
+                                <stop offset="100%" style="stop-color:#22d3ee;" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="12" cy="12" r="9" stroke="url(#logo-gradient)" stroke-width="2"/>
+                        <path d="M12 15V9M12 9L9.5 11.5M12 9L14.5 11.5" stroke="var(--text-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h1 class="text-xl font-bold text-slate-100 ml-3">ProsBe SEM Toolkit</h1>
+            </div>
+            <nav id="main-nav" class="flex-grow">
+                <ul class="space-y-3">
+                    <li><a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="keyword-genius"><i data-lucide="key-round" class="w-5 h-5 mr-4 opacity-80"></i><span>Keyword Genius</span></a></li>
+                    <li><a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="ad-copy-crafter"><i data-lucide="file-pen-line" class="w-5 h-5 mr-4 opacity-80"></i><span>Ad Copy Crafter</span></a></li>
+                    <li><a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="audience-persona"><i data-lucide="users" class="w-5 h-5 mr-4 opacity-80"></i><span>Audience Persona</span></a></li>
+                    <li><a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="campaign-planner"><i data-lucide="network" class="w-5 h-5 mr-4 opacity-80"></i><span>Campaign Planner</span></a></li>
+                    <li class="border-t border-[var(--border-color)] my-4 !mt-4"></li>
+                    <li><a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="competitor-analyzer"><i data-lucide="swords" class="w-5 h-5 mr-4 opacity-80"></i><span>Competitor Analyzer</span></a></li>
+                </ul>
+            </nav>
+            
+            <div class="flex-shrink-0 mt-auto">
+                <div class="border-t border-[var(--border-color)] pt-4 space-y-3">
+                     <a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="help-center"><i data-lucide="help-circle" class="w-5 h-5 mr-4 opacity-80"></i><span>Pusat Bantuan</span></a>
+                     <a href="#" id="logout-button" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:!text-red-400">
+                        <i data-lucide="log-out" class="w-5 h-5 mr-4 opacity-80"></i>
+                        <span>Keluar</span>
+                    </a>
+                </div>
+                <div class="mt-4 text-xs text-center text-[var(--text-secondary)]">
+                    <p>Edisi Final</p>
+                    <p>&copy; 2025</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 p-6 lg:p-10 overflow-y-auto z-10">
+            <div id="tool-content"></div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/lucide-react@0.378.0/dist/lucide.js"></script>
+    
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const firebaseConfig = {
+                apiKey: "AIzaSyDvAVwitlROC3VSb_8Y6ZMKzkNUXza18Gs",
+                authDomain: "sem-tools-9d079.firebaseapp.com",
+                projectId: "sem-tools-9d079",
+                storageBucket: "sem-tools-9d079.appspot.com",
+                messagingSenderId: "192403969549",
+                appId: "1:192403969549:web:4b7913524df89726caa744"
+            };
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+
+            const loginOverlay = document.getElementById('login-overlay');
+            const loginForm = document.getElementById('login-form');
+            const emailInput = document.getElementById('email-input');
+            const passwordInput = document.getElementById('password-input');
+            const loginError = document.getElementById('login-error');
+            const loginButton = document.getElementById('login-button');
+            const mainApp = document.getElementById('main-app');
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                loginError.classList.add('hidden');
+                const originalButtonText = loginButton.querySelector('span').textContent;
+                loginButton.querySelector('span').textContent = 'Mencoba Masuk...';
+                loginButton.disabled = true;
+
+                try {
+                    await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
+                } catch (error) {
+                    console.error("Login failed:", error.code);
+                    loginError.textContent = "Email atau password salah. Coba lagi.";
+                    loginError.classList.remove('hidden');
+                    loginForm.classList.add('shake-error');
+                    setTimeout(() => {
+                        loginForm.classList.remove('shake-error');
+                    }, 500);
+                } finally {
+                    loginButton.querySelector('span').textContent = originalButtonText;
+                    loginButton.disabled = false;
+                }
+            });
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    loginOverlay.classList.add('hidden');
+                    mainApp.classList.remove('hidden');
+                    startMainApp();
+                } else {
+                    mainApp.classList.add('hidden');
+                    loginOverlay.classList.remove('hidden');
+                    emailInput.value = '';
+                    passwordInput.value = '';
+                }
+            });
+
+            function startMainApp() {
+                const toolContent = document.getElementById('tool-content');
+                const mainNav = document.getElementById('main-nav');
+                const logoutButton = document.getElementById('logout-button');
+                const helpButton = document.querySelector('a[data-tool="help-center"]');
+                let chatHistory = [];
+                
+                logoutButton.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await signOut(auth);
+                    } catch (error) {
+                        console.error("Sign out error", error);
+                    }
+                });
+
+                const helpContentHTML = `
+                    <div class="prose-aurora max-w-none">
+                        <h2>Selamat Datang di Pusat Bantuan ProsBe SEM Toolkit!</h2>
+                        <p>Panduan ini dirancang agar mudah dipahami, bahkan jika Anda baru di dunia SEM. Mari kita mulai!</p>
+                        <h3><span>1. Keyword Genius</span></h3>
+                        <p><strong>Gunanya untuk apa?</strong> Alat ini seperti detektif kata kunci. Tugasnya adalah mencari semua kata kunci yang mungkin digunakan calon pelanggan untuk menemukan produk atau jasa seperti milik Anda.</p>
+                        <ul><li><strong>Cara Pakai:</strong> Cukup masukkan topik umum di kolom yang tersedia, misalnya <code>sepatu olahraga pria</code>, lalu klik tombol "Hasilkan".</li><li><strong>Hasilnya:</strong> Anda akan mendapat "harta karun" berupa daftar kata kunci, mulai dari yang umum sampai yang sangat spesifik (seperti <code>harga sepatu lari pria di bawah 500 ribu</code>).</li></ul>
+                        <h3><span>2. Ad Copy Crafter</span></h3>
+                        <p><strong>Gunanya untuk apa?</strong> Ini adalah penulis iklan pribadi Anda. Alat ini akan membuatkan teks iklan yang menarik dan menjual untuk dipasang di Google.</p>
+                        <ul><li><strong>Cara Pakai:</strong> Isi dua kolom: apa produk Anda (misal: <code>katering makanan sehat</code>) dan siapa target Anda (misal: <code>pekerja kantoran sibuk</code>). Klik "Buat Teks Iklan".</li><li><strong>Hasilnya:</strong> Beberapa contoh set iklan lengkap dengan Judul (Headline) dan Deskripsi yang bisa langsung Anda gunakan.</li></ul>
+                        <h3><span>3. Audience Persona Builder</span></h3>
+                        <p><strong>Gunanya untuk apa?</strong> Alat ini membantu Anda "berkenalan" dengan calon pelanggan Anda. Semakin kenal, semakin mudah menjual.</p>
+                        <ul><li><strong>Cara Pakai:</strong> Ceritakan sedikit tentang bisnis Anda di kolom yang ada. Contoh: <code>Kami menjual paket wisata petualangan ke Bromo</code>. Klik "Bangun Persona".</li><li><strong>Hasilnya:</strong> Profil detail calon pelanggan Anda, seperti perkiraan umur, hobi, masalah yang mereka hadapi, dan apa yang mereka inginkan.</li></ul>
+                        <h3><span>4. Campaign Planner</span></h3>
+                        <p><strong>Gunanya untuk apa?</strong> Anggap ini sebagai arsitek kampanye iklan Anda. Alat ini akan membuatkan cetak biru (blueprint) agar iklan Anda terstruktur dengan rapi.</p>
+                        <ul><li><strong>Cara Pakai:</strong> Masukkan topik utama kampanye Anda, misalnya <code>jasa desain logo untuk UMKM</code>, lalu klik "Rencanakan".</li><li><strong>Hasilnya:</strong> Sebuah rencana yang berisi saran nama kampanye dan pengelompokan iklan (Ad Group) yang logis, lengkap dengan ide kata kunci di dalamnya.</li></ul>
+                        <h3><span>5. Competitor Analyzer</span></h3>
+                        <p><strong>Gunanya untuk apa?</strong> Ini adalah fitur paling canggih, seperti teropong untuk "mengintip" strategi lawan bisnis Anda.</p>
+                        <ul><li><strong>Cara Pakai:</strong> Masukkan alamat website kompetitor Anda (contoh: <code>https://www.nama-pesaing.com</code>) dan klik "Analisis Kompetitor".</li><li><strong>Hasilnya:</strong> Laporan intelijen yang membongkar perkiraan kata kunci andalan mereka, bagaimana gaya iklan mereka, dan siapa target pasar yang mereka sasar.</li></ul>
+                    </div>
+                `;
+
+                const toolTemplates = {
+                    'keyword-genius': {
+                        title: 'Keyword Genius',
+                        description: 'Temukan permata tersembunyi. Masukkan topik utama untuk mendapatkan riset kata kunci yang mendalam.',
+                        form: `<label for="keyword-topic" class="block text-sm font-semibold text-slate-300 mb-2">Topik / Produk</label><input type="text" id="keyword-topic" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: sepatu lari wanita">`,
+                        buttonText: 'Hasilkan Ide Kata Kunci',
+                        handler: (form) => {
+                            const topic = form.querySelector('#keyword-topic').value;
+                            if (!topic) { showError('Harap masukkan topik terlebih dahulu.'); return null; }
+                            return `Sebagai ahli SEM, berikan saya riset kata kunci untuk topik: "${topic}". Format dengan Markdown.`;
+                        }
+                    },
+                    'ad-copy-crafter': {
+                        title: 'Ad Copy Crafter',
+                        description: 'Ubah klik menjadi konversi. Buat teks iklan Google Ads yang menjual dan menarik perhatian.',
+                        form: `<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label for="ad-product" class="block text-sm font-semibold text-slate-300 mb-2">Produk / Layanan</label><input type="text" id="ad-product" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: Kursus Digital Marketing Online"></div><div><label for="ad-audience" class="block text-sm font-semibold text-slate-300 mb-2">Target Audiens</label><input type="text" id="ad-audience" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: Mahasiswa dan fresh graduate"></div></div>`,
+                        buttonText: 'Buat Teks Iklan',
+                        handler: (form) => {
+                            const product = form.querySelector('#ad-product').value;
+                            const audience = form.querySelector('#ad-audience').value;
+                            if (!product || !audience) { showError('Harap lengkapi semua field.'); return null; }
+                            return `Sebagai copywriter ahli Google Ads, buatkan 3 set variasi teks iklan untuk produk "${product}" yang menargetkan "${audience}". Format dengan Markdown.`;
+                        }
+                    },
+                    'audience-persona': {
+                        title: 'Audience Persona Builder',
+                        description: 'Pahami audiens Anda lebih dalam. Definisikan persona target untuk kampanye yang lebih presisi.',
+                        form: `<label for="persona-product" class="block text-sm font-semibold text-slate-300 mb-2">Jelaskan Produk / Bisnis Anda</label><textarea id="persona-product" rows="4" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: Kami menjual kopi arabika organik dari Gayo..."></textarea>`,
+                        buttonText: 'Bangun Persona Audiens',
+                        handler: (form) => {
+                            const product = form.querySelector('#persona-product').value;
+                            if (!product) { showError('Harap jelaskan produk Anda.'); return null; }
+                            return `Sebagai marketing strategist, buatkan profil persona audiens yang detail untuk bisnis: "${product}". Format dengan Markdown.`;
+                        }
+                    },
+                    'campaign-planner': {
+                        title: 'Campaign Structure Planner',
+                        description: 'Bangun fondasi yang kokoh. Rancang struktur kampanye Google Ads yang terorganisir dan efektif.',
+                        form: `<label for="campaign-topic" class="block text-sm font-semibold text-slate-300 mb-2">Topik Utama Kampanye</label><input type="text" id="campaign-topic" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: Jasa desain interior rumah">`,
+                        buttonText: 'Rencanakan Struktur Kampanye',
+                        handler: (form) => {
+                            const topic = form.querySelector('#campaign-topic').value;
+                            if (!topic) { showError('Harap masukkan topik kampanye.'); return null; }
+                            return `Sebagai manajer SEM, buatkan rencana struktur kampanye Google Ads untuk topik: "${topic}". Format dengan Markdown.`;
+                        }
+                    },
+                    'competitor-analyzer': {
+                        title: 'Competitor Analyzer',
+                        description: 'Intip strategi lawan. Masukkan URL kompetitor untuk mendapatkan analisis mendalam tentang strategi SEM mereka.',
+                        form: `<label for="competitor-url" class="block text-sm font-semibold text-slate-300 mb-2">URL Website Kompetitor</label><input type="url" id="competitor-url" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Contoh: https://www.tokopedia.com">`,
+                        buttonText: 'Analisis Kompetitor',
+                        handler: (form) => {
+                            const url = form.querySelector('#competitor-url').value;
+                            if (!url) { showError('Harap masukkan URL kompetitor.'); return null; }
+                            return `Sebagai seorang ahli strategi SEM kelas dunia, lakukan analisis mendalam terhadap situs web di URL: "${url}". Berikan laporan intelijen kompetitif yang tajam dan dapat ditindaklanjuti. Format laporan dalam Markdown dan cakup poin-poin berikut: ## Analisis Intelijen Kompetitif untuk ${url} ### Kemungkinan Target Kata Kunci * Buat daftar 10-15 kata kunci utama dan long-tail yang kemungkinan besar mereka targetkan. ### Analisis Strategi Iklan (Ad Strategy) * Jelaskan kemungkinan sudut pandang (angle) iklan mereka, proposisi nilai utama, dan jenis seruan untuk bertindak (CTA) yang mereka gunakan. ### Perkiraan Persona Audiens * Buat persona mini dari target pelanggan ideal mereka.`;
+                        }
+                    },
+                    'help-center': {
+                        title: 'Pusat Bantuan',
+                        description: 'Panduan lengkap untuk memaksimalkan setiap fitur di ProsBe SEM Toolkit.',
+                        content: helpContentHTML
+                    }
+                };
+                
+                function showError(message) {
+                    const errorBox = document.getElementById('error-message-box');
+                    if (errorBox) { errorBox.textContent = message; errorBox.classList.remove('hidden'); }
+                }
+
+                function hideError() {
+                    const errorBox = document.getElementById('error-message-box');
+                    if (errorBox) { errorBox.classList.add('hidden'); }
+                }
+                
+                function copyToClipboard(text, buttonElement) {
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text; document.body.appendChild(textarea);
+                    textarea.select(); document.execCommand('copy'); document.body.removeChild(textarea);
+
+                    const originalHTML = buttonElement.innerHTML;
+                    buttonElement.innerHTML = `<i data-lucide="check" class="w-4 h-4 mr-2"></i>Tersalin!`;
+                    lucide.createIcons();
+                    setTimeout(() => { buttonElement.innerHTML = originalHTML; lucide.createIcons(); }, 2000);
+                }
+
+                function exportToPDF(title) {
+                    const { jsPDF } = window.jspdf;
+                    const content = document.getElementById('output-container');
+                    const pdfButton = document.getElementById('export-pdf-button');
+                    const originalText = pdfButton.innerHTML;
+                    pdfButton.innerHTML = 'Mengekspor...';
+                    pdfButton.disabled = true;
+
+                    html2canvas(content, { backgroundColor: '#161b22' }).then(canvas => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF('p', 'mm', 'a4');
+                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                        const pdfHeight = pdf.internal.pageSize.getHeight();
+                        const canvasWidth = canvas.width;
+                        const canvasHeight = canvas.height;
+                        const ratio = canvasWidth / canvasHeight;
+                        const imgWidth = pdfWidth - 20;
+                        const imgHeight = imgWidth / ratio;
+                        
+                        let heightLeft = imgHeight;
+                        let position = 10;
+                        
+                        pdf.text(title, 10, 10);
+                        pdf.addImage(imgData, 'PNG', 10, 15, imgWidth, imgHeight);
+                        heightLeft -= (pdfHeight - 15);
+
+                        while (heightLeft > 0) {
+                            position = heightLeft - imgHeight;
+                            pdf.addPage();
+                            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+                            heightLeft -= pdfHeight;
+                        }
+                        
+                        pdf.save(`SEM_Report_${title.replace(/\s/g, '_')}.pdf`);
+                        pdfButton.innerHTML = originalText;
+                        pdfButton.disabled = false;
+                        lucide.createIcons();
+                    });
+                }
+
+                async function callGeminiAPI(prompt, toolTitle) {
+                    const outputElement = document.getElementById('output-container');
+                    if (!outputElement) return;
+
+                    outputElement.innerHTML = `<div class="flex flex-col justify-center items-center p-10 h-full"><div class="loader"></div><p class="mt-6 text-[var(--text-secondary)]">AI sedang meracik strategi...</p></div>`;
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+
+                    const payload = { contents: chatHistory };
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    try {
+                        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                        if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+                        const result = await response.json();
+                        
+                        if (result.candidates?.[0]?.content?.parts?.[0]) {
+                            const rawText = result.candidates[0].content.parts[0].text;
+                            chatHistory.push(result.candidates[0].content);
+                            
+                            let htmlText = rawText
+                                .replace(/## (.*)/g, '<h2>$1</h2>')
+                                .replace(/### (.*)/g, '<h3><span>$1</span></h3>')
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/^\* (.*)/gm, '<li>$1</li>');
+                            htmlText = htmlText.replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
+                            
+                            outputElement.innerHTML = `<div class="prose-aurora max-w-none">${htmlText}</div>`;
+                            
+                            const copyButton = document.getElementById('copy-button');
+                            const pdfButton = document.getElementById('export-pdf-button');
+                            if(copyButton) {
+                                copyButton.classList.remove('hidden');
+                                copyButton.onclick = () => copyToClipboard(rawText, copyButton);
+                            }
+                            if(pdfButton) {
+                                pdfButton.classList.remove('hidden');
+                                pdfButton.onclick = () => exportToPDF(toolTitle);
+                            }
+                        } else {
+                            outputElement.innerHTML = `<div class="text-red-400 text-center">Maaf, respons dari AI tidak valid. Coba lagi.</div>`;
+                        }
+                    } catch (error) {
+                        console.error("Error calling Gemini API:", error);
+                        outputElement.innerHTML = `<div class="text-red-400 text-center">Terjadi kesalahan saat menghubungi AI.</div>`;
+                    }
+                }
+
+                function renderTool(toolId) {
+                    const tool = toolTemplates[toolId];
+                    if (!tool) { console.error(`Tool with id "${toolId}" not found.`); return; }
+                    
+                    chatHistory = [];
+                    if(toolId === 'help-center') {
+                        toolContent.innerHTML = `
+                        <div class="max-w-5xl mx-auto">
+                            <div class="mb-8"><h2 class="text-4xl font-extrabold text-white">${tool.title}</h2><p class="mt-2 text-lg text-[var(--text-secondary)]">${tool.description}</p></div>
+                            <div class="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-2xl shadow-black/30 backdrop-blur-xl p-8">
+                                ${tool.content}
+                            </div>
+                        </div>`;
+                        return;
+                    }
+
+                    toolContent.innerHTML = `
+                        <div class="max-w-5xl mx-auto">
+                            <div class="mb-8"><h2 class="text-4xl font-extrabold text-white">${tool.title}</h2><p class="mt-2 text-lg text-[var(--text-secondary)]">${tool.description}</p></div>
+                            <div class="bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-2xl shadow-black/30 backdrop-blur-xl">
+                                <form id="tool-form" class="p-8">
+                                    ${tool.form}
+                                    <div id="error-message-box" class="hidden mt-4 p-3 bg-red-500/10 text-red-300 border border-red-500/20 rounded-lg"></div>
+                                    <button type="submit" class="mt-6 w-full group relative inline-flex items-center justify-center px-6 py-3.5 font-semibold rounded-lg text-white overflow-hidden">
+                                        <span class="absolute w-full h-full bg-[var(--accent-gradient)] bg-[200%] group-hover:bg-[100%] transition-all duration-500"></span>
+                                        <i data-lucide="sparkles" class="w-5 h-5 mr-3 relative"></i>
+                                        <span class="relative">${tool.buttonText}</span>
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="mt-10 bg-[var(--card-color)] border border-[var(--border-color)] rounded-xl shadow-2xl shadow-black/30 backdrop-blur-xl min-h-[300px] animation-glow">
+                                <div class="px-6 py-4 border-b border-[var(--border-color)] flex justify-between items-center">
+                                    <h3 class="font-semibold text-slate-100">Hasil Analisis</h3>
+                                    <div class="flex items-center space-x-2">
+                                        <button id="copy-button" class="hidden flex items-center text-xs text-slate-400 hover:text-white px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 rounded-md"><i data-lucide="copy" class="w-4 h-4 mr-2"></i>Salin</button>
+                                        <button id="export-pdf-button" class="hidden flex items-center text-xs text-slate-400 hover:text-white px-3 py-1.5 bg-slate-700/50 hover:bg-slate-700 rounded-md"><i data-lucide="file-down" class="w-4 h-4 mr-2"></i>Ekspor PDF</button>
+                                    </div>
+                                </div>
+                                <div id="output-container" class="p-8"><p class="text-[var(--text-secondary)] text-center">Pilih alat dan mulai analisis Anda.</p></div>
+                            </div>
+                        </div>`;
+
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                    const form = document.getElementById('tool-form');
+                    if(form) {
+                        form.addEventListener('submit', (e) => {
+                            e.preventDefault();
+                            hideError();
+                            const prompt = tool.handler(form);
+                            if (prompt) callGeminiAPI(prompt, tool.title);
+                        });
+                    }
+                }
+
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+
+                mainNav.addEventListener('click', handleNavClick);
+                helpButton.addEventListener('click', handleNavClick);
+
+                function handleNavClick(e) {
+                    const navLink = e.target.closest('.nav-item');
+                    if (navLink) {
+                        e.preventDefault();
+                        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                        navLink.classList.add('active');
+                        renderTool(navLink.dataset.tool);
+                    }
+                }
+
+                const defaultToolLink = document.querySelector('.nav-item[data-tool="keyword-genius"]');
+                if (defaultToolLink) {
+                    defaultToolLink.click();
+                } else {
+                    toolContent.innerHTML = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-white">Error</h2><p class="text-slate-400">Gagal memuat alat default.</p></div>`;
+                }
+            }
+        });
+    </script>
+</body>
+</html>
