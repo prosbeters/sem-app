@@ -71,7 +71,7 @@
              background: linear-gradient(90deg, #a855f7, #ec4899);
              -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .prose-aurora p { color: #b0b8c1; line-height: 1.7; }
+        .prose-aurora p { color: #b0b8c1; line-height: 1.7; margin-bottom: 1rem; }
         .prose-aurora strong { color: var(--text-primary); }
         .prose-aurora ul { list-style: none; padding-left: 0; margin-top: 1rem;}
         .prose-aurora li { position: relative; padding-left: 1.75rem; margin-bottom: 0.75rem; color: #b0b8c1; }
@@ -87,6 +87,10 @@
             margin: 0;
             font-size: 85%;
             border-radius: 6px;
+        }
+        .prose-aurora a {
+            color: #58a6ff;
+            text-decoration: underline;
         }
         .loader {
             width: 56px; height: 56px; border-radius: 50%; display: inline-block; position: relative;
@@ -166,6 +170,7 @@
             
             <div class="flex-shrink-0 mt-auto">
                 <div class="border-t border-[var(--border-color)] pt-4 space-y-3">
+                     <a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="settings"><i data-lucide="settings" class="w-5 h-5 mr-4 opacity-80"></i><span>Pengaturan</span></a>
                      <a href="#" class="nav-item flex items-center px-4 py-2.5 rounded-lg" data-tool="help-center"><i data-lucide="help-circle" class="w-5 h-5 mr-4 opacity-80"></i><span>Pusat Bantuan</span></a>
                      <a href="#" id="logout-button" class="nav-item flex items-center px-4 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 hover:!text-red-400">
                         <i data-lucide="log-out" class="w-5 h-5 mr-4 opacity-80"></i>
@@ -179,8 +184,12 @@
             </div>
         </aside>
 
-        <main class="flex-1 p-6 lg:p-10 overflow-y-auto z-10">
-            <div id="tool-content"></div>
+        <main class="flex-1 p-6 lg:p-10 overflow-y-auto z-10 relative">
+            <div id="api-key-notice" class="hidden absolute top-0 left-0 right-0 mx-10 mt-4 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 px-4 py-3 rounded-lg text-sm flex items-center">
+                <i data-lucide="alert-triangle" class="w-5 h-5 mr-3"></i>
+                <span>Anda belum memasukkan API Key Google AI Studio. Silakan pergi ke menu <strong>Pengaturan</strong> untuk menambahkannya.</span>
+            </div>
+            <div id="tool-content" class="pt-12"></div>
         </main>
     </div>
 
@@ -225,13 +234,10 @@
                 try {
                     await signInWithEmailAndPassword(auth, emailInput.value, passwordInput.value);
                 } catch (error) {
-                    console.error("Login failed:", error.code);
                     loginError.textContent = "Email atau password salah. Coba lagi.";
                     loginError.classList.remove('hidden');
                     loginForm.classList.add('shake-error');
-                    setTimeout(() => {
-                        loginForm.classList.remove('shake-error');
-                    }, 500);
+                    setTimeout(() => { loginForm.classList.remove('shake-error'); }, 500);
                 } finally {
                     loginButton.querySelector('span').textContent = originalButtonText;
                     loginButton.disabled = false;
@@ -255,37 +261,80 @@
                 const toolContent = document.getElementById('tool-content');
                 const mainNav = document.getElementById('main-nav');
                 const logoutButton = document.getElementById('logout-button');
-                const helpButton = document.querySelector('a[data-tool="help-center"]');
+                const apiKeyNotice = document.getElementById('api-key-notice');
+                const sidebar = document.querySelector('aside');
                 let chatHistory = [];
                 
                 logoutButton.addEventListener('click', async (e) => {
                     e.preventDefault();
-                    try {
-                        await signOut(auth);
-                    } catch (error) {
-                        console.error("Sign out error", error);
-                    }
+                    await signOut(auth);
                 });
+
+                function checkApiKey() {
+                    const key = localStorage.getItem('googleAiApiKey');
+                    if (!key) {
+                        apiKeyNotice.classList.remove('hidden');
+                    } else {
+                        apiKeyNotice.classList.add('hidden');
+                    }
+                    if (typeof lucide !== 'undefined') {
+                        lucide.createIcons();
+                    }
+                }
 
                 const helpContentHTML = `
                     <div class="prose-aurora max-w-none">
                         <h2>Selamat Datang di Pusat Bantuan ProsBe SEM Toolkit!</h2>
-                        <p>Panduan ini dirancang agar mudah dipahami, bahkan jika Anda baru di dunia SEM. Mari kita mulai!</p>
-                        <h3><span>1. Keyword Genius</span></h3>
-                        <p><strong>Gunanya untuk apa?</strong> Alat ini seperti detektif kata kunci. Tugasnya adalah mencari semua kata kunci yang mungkin digunakan calon pelanggan untuk menemukan produk atau jasa seperti milik Anda.</p>
-                        <ul><li><strong>Cara Pakai:</strong> Cukup masukkan topik umum di kolom yang tersedia, misalnya <code>sepatu olahraga pria</code>, lalu klik tombol "Hasilkan".</li><li><strong>Hasilnya:</strong> Anda akan mendapat "harta karun" berupa daftar kata kunci, mulai dari yang umum sampai yang sangat spesifik (seperti <code>harga sepatu lari pria di bawah 500 ribu</code>).</li></ul>
-                        <h3><span>2. Ad Copy Crafter</span></h3>
-                        <p><strong>Gunanya untuk apa?</strong> Ini adalah penulis iklan pribadi Anda. Alat ini akan membuatkan teks iklan yang menarik dan menjual untuk dipasang di Google.</p>
-                        <ul><li><strong>Cara Pakai:</strong> Isi dua kolom: apa produk Anda (misal: <code>katering makanan sehat</code>) dan siapa target Anda (misal: <code>pekerja kantoran sibuk</code>). Klik "Buat Teks Iklan".</li><li><strong>Hasilnya:</strong> Beberapa contoh set iklan lengkap dengan Judul (Headline) dan Deskripsi yang bisa langsung Anda gunakan.</li></ul>
-                        <h3><span>3. Audience Persona Builder</span></h3>
-                        <p><strong>Gunanya untuk apa?</strong> Alat ini membantu Anda "berkenalan" dengan calon pelanggan Anda. Semakin kenal, semakin mudah menjual.</p>
-                        <ul><li><strong>Cara Pakai:</strong> Ceritakan sedikit tentang bisnis Anda di kolom yang ada. Contoh: <code>Kami menjual paket wisata petualangan ke Bromo</code>. Klik "Bangun Persona".</li><li><strong>Hasilnya:</strong> Profil detail calon pelanggan Anda, seperti perkiraan umur, hobi, masalah yang mereka hadapi, dan apa yang mereka inginkan.</li></ul>
-                        <h3><span>4. Campaign Planner</span></h3>
-                        <p><strong>Gunanya untuk apa?</strong> Anggap ini sebagai arsitek kampanye iklan Anda. Alat ini akan membuatkan cetak biru (blueprint) agar iklan Anda terstruktur dengan rapi.</p>
-                        <ul><li><strong>Cara Pakai:</strong> Masukkan topik utama kampanye Anda, misalnya <code>jasa desain logo untuk UMKM</code>, lalu klik "Rencanakan".</li><li><strong>Hasilnya:</strong> Sebuah rencana yang berisi saran nama kampanye dan pengelompokan iklan (Ad Group) yang logis, lengkap dengan ide kata kunci di dalamnya.</li></ul>
-                        <h3><span>5. Competitor Analyzer</span></h3>
+                        <p>Panduan ini dirancang agar mudah dipahami, bahkan jika Anda baru di dunia Pemasaran Mesin Pencari (SEM). Mari kita bedah setiap fitur agar Anda bisa menjadi seorang profesional.</p>
+
+                        <h3><span>Cara Mendapatkan API Key Google AI Studio</span></h3>
+                        <p>Agar aplikasi ini bisa berfungsi, Anda memerlukan "kunci" khusus dari Google. Anggap saja ini seperti password yang Anda berikan ke aplikasi agar bisa menggunakan teknologi AI canggih dari Google. Tenang, ini gratis dan caranya mudah!</p>
+                        <ul>
+                            <li><strong>Langkah 1:</strong> Buka situs Google AI Studio. Anda bisa klik di sini: <a href="https://aistudio.google.com/" target="_blank">aistudio.google.com</a>.</li>
+                            <li><strong>Langkah 2:</strong> Login menggunakan akun Google Anda.</li>
+                            <li><strong>Langkah 3:</strong> Setelah masuk, cari dan klik tombol <strong>"Get API key"</strong> (biasanya ada di menu sebelah kiri atau atas).</li>
+                            <li><strong>Langkah 4:</strong> Klik tombol <strong>"Create API key in new project"</strong>. Sebuah kode panjang akan muncul.</li>
+                            <li><strong>Langkah 5:</strong> Salin (copy) kode tersebut. Itulah API Key Anda!</li>
+                            <li><strong>Langkah 6:</strong> Kembali ke aplikasi ini, masuk ke menu <strong>Pengaturan</strong>, tempel (paste) kode tadi di kolom yang tersedia, lalu klik <strong>"Simpan API Key"</strong>. Selesai!</li>
+                        </ul>
+                        
+                        <h3><span>Penjelasan Fitur-Fitur Aplikasi</span></h3>
+                        <p>Berikut adalah penjelasan sederhana untuk setiap alat canggih di toolkit ini:</p>
+
+                        <h4><strong>1. Keyword Genius</strong></h4>
+                        <p><strong>Gunanya untuk apa?</strong> Alat ini seperti detektif kata kunci. Tugasnya adalah mencari semua kata kunci yang mungkin diketik calon pelanggan di Google untuk menemukan produk atau jasa seperti milik Anda.</p>
+                        <ul>
+                            <li><strong>Cara Pakai:</strong> Cukup masukkan topik umum di kolom yang tersedia, misalnya <code>jasa katering pernikahan</code>, lalu klik tombol "Hasilkan".</li>
+                            <li><strong>Hasilnya Seperti Apa?</strong> Anda akan mendapat daftar kata kunci, mulai dari yang umum (seperti \`katering nikah\`) sampai yang sangat spesifik (seperti \`harga paket katering pernikahan untuk 500 orang\`).</li>
+                        </ul>
+
+                        <h4><strong>2. Ad Copy Crafter</strong></h4>
+                        <p><strong>Gunanya untuk apa?</strong> Ini adalah penulis iklan pribadi Anda. Alat ini akan membuatkan teks iklan (Judul & Deskripsi) yang menarik dan menjual untuk dipasang di Google.</p>
+                        <ul>
+                            <li><strong>Cara Pakai:</strong> Isi dua kolom: apa produk Anda (misal: \`kursus gitar online untuk pemula\`) dan siapa target Anda (misal: \`orang dewasa yang ingin belajar hobi baru\`). Klik "Buat Teks Iklan".</li>
+                            <li><strong>Hasilnya Seperti Apa?</strong> Beberapa contoh set iklan lengkap dengan pilihan Judul dan Deskripsi yang bisa langsung Anda gunakan.</li>
+                        </ul>
+
+                        <h4><strong>3. Audience Persona Builder</strong></h4>
+                        <p><strong>Gunanya untuk apa?</strong> Alat ini membantu Anda "berkenalan" dengan calon pelanggan ideal Anda. Semakin kenal, semakin mudah menjual.</p>
+                        <ul>
+                            <li><strong>Cara Pakai:</strong> Ceritakan sedikit tentang bisnis Anda di kolom yang ada. Contoh: \`Kami menjual biji kopi arabika asli Toraja secara online\`. Klik "Bangun Persona".</li>
+                            <li><strong>Hasilnya Seperti Apa?</strong> Profil detail calon pelanggan Anda, seperti perkiraan umur, hobi, masalah yang mereka hadapi (misal: \`sulit mencari kopi berkualitas\`), dan apa yang mereka inginkan.</li>
+                        </ul>
+
+                        <h4><strong>4. Campaign Planner</strong></h4>
+                        <p><strong>Gunanya untuk apa?</strong> Anggap ini sebagai arsitek kampanye iklan Anda. Alat ini akan membuatkan cetak biru (blueprint) agar iklan Anda terstruktur dengan rapi dan efektif.</p>
+                        <ul>
+                            <li><strong>Cara Pakai:</strong> Masukkan topik utama kampanye Anda, misalnya \`jasa fotografi pre-wedding\`, lalu klik "Rencanakan".</li>
+                            <li><strong>Hasilnya Seperti Apa?</strong> Sebuah rencana yang berisi saran nama kampanye dan pengelompokan iklan (Ad Group) yang logis, lengkap dengan ide kata kunci di dalamnya.</li>
+                        </ul>
+
+                        <h4><strong>5. Competitor Analyzer</strong></h4>
                         <p><strong>Gunanya untuk apa?</strong> Ini adalah fitur paling canggih, seperti teropong untuk "mengintip" strategi lawan bisnis Anda.</p>
-                        <ul><li><strong>Cara Pakai:</strong> Masukkan alamat website kompetitor Anda (contoh: <code>https://www.nama-pesaing.com</code>) dan klik "Analisis Kompetitor".</li><li><strong>Hasilnya:</strong> Laporan intelijen yang membongkar perkiraan kata kunci andalan mereka, bagaimana gaya iklan mereka, dan siapa target pasar yang mereka sasar.</li></ul>
+                        <ul>
+                            <li><strong>Cara Pakai:</strong> Masukkan alamat website kompetitor Anda (contoh: \`https://www.nama-pesaing.com\`) dan klik "Analisis Kompetitor".</li>
+                            <li><strong>Hasilnya Seperti Apa?</strong> Laporan intelijen yang membongkar perkiraan kata kunci andalan mereka, bagaimana gaya iklan mereka, dan siapa target pasar yang mereka sasar.</li>
+                        </ul>
                     </div>
                 `;
 
@@ -298,7 +347,7 @@
                         handler: (form) => {
                             const topic = form.querySelector('#keyword-topic').value;
                             if (!topic) { showError('Harap masukkan topik terlebih dahulu.'); return null; }
-                            return `Sebagai ahli SEM, berikan saya riset kata kunci untuk topik: "${topic}". Format dengan Markdown.`;
+                            return `Sebagai ahli SEM, berikan saya riset kata kunci untuk topik: "${topic}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
                         }
                     },
                     'ad-copy-crafter': {
@@ -310,7 +359,7 @@
                             const product = form.querySelector('#ad-product').value;
                             const audience = form.querySelector('#ad-audience').value;
                             if (!product || !audience) { showError('Harap lengkapi semua field.'); return null; }
-                            return `Sebagai copywriter ahli Google Ads, buatkan 3 set variasi teks iklan untuk produk "${product}" yang menargetkan "${audience}". Format dengan Markdown.`;
+                            return `Sebagai copywriter ahli Google Ads, buatkan 3 set variasi teks iklan untuk produk "${product}" yang menargetkan "${audience}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
                         }
                     },
                     'audience-persona': {
@@ -321,7 +370,7 @@
                         handler: (form) => {
                             const product = form.querySelector('#persona-product').value;
                             if (!product) { showError('Harap jelaskan produk Anda.'); return null; }
-                            return `Sebagai marketing strategist, buatkan profil persona audiens yang detail untuk bisnis: "${product}". Format dengan Markdown.`;
+                            return `Sebagai marketing strategist, buatkan profil persona audiens yang detail untuk bisnis: "${product}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
                         }
                     },
                     'campaign-planner': {
@@ -332,7 +381,7 @@
                         handler: (form) => {
                             const topic = form.querySelector('#campaign-topic').value;
                             if (!topic) { showError('Harap masukkan topik kampanye.'); return null; }
-                            return `Sebagai manajer SEM, buatkan rencana struktur kampanye Google Ads untuk topik: "${topic}". Format dengan Markdown.`;
+                            return `Sebagai manajer SEM, buatkan rencana struktur kampanye Google Ads untuk topik: "${topic}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
                         }
                     },
                     'competitor-analyzer': {
@@ -343,13 +392,38 @@
                         handler: (form) => {
                             const url = form.querySelector('#competitor-url').value;
                             if (!url) { showError('Harap masukkan URL kompetitor.'); return null; }
-                            return `Sebagai seorang ahli strategi SEM kelas dunia, lakukan analisis mendalam terhadap situs web di URL: "${url}". Berikan laporan intelijen kompetitif yang tajam dan dapat ditindaklanjuti. Format laporan dalam Markdown dan cakup poin-poin berikut: ## Analisis Intelijen Kompetitif untuk ${url} ### Kemungkinan Target Kata Kunci * Buat daftar 10-15 kata kunci utama dan long-tail yang kemungkinan besar mereka targetkan. ### Analisis Strategi Iklan (Ad Strategy) * Jelaskan kemungkinan sudut pandang (angle) iklan mereka, proposisi nilai utama, dan jenis seruan untuk bertindak (CTA) yang mereka gunakan. ### Perkiraan Persona Audiens * Buat persona mini dari target pelanggan ideal mereka.`;
+                            return `Sebagai seorang ahli strategi SEM kelas dunia, lakukan analisis mendalam terhadap situs web di URL: "${url}". Berikan laporan intelijen kompetitif. Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
                         }
                     },
                     'help-center': {
                         title: 'Pusat Bantuan',
                         description: 'Panduan lengkap untuk memaksimalkan setiap fitur di ProsBe SEM Toolkit.',
                         content: helpContentHTML
+                    },
+                    'settings': {
+                        title: 'Pengaturan',
+                        description: 'Kelola API Key Anda untuk mengakses fitur AI.',
+                        content: `
+                            <div class="space-y-4">
+                                <div>
+                                    <label for="api-key-input" class="block text-sm font-semibold text-slate-300 mb-2">Google AI Studio API Key</label>
+                                    <input type="password" id="api-key-input" class="w-full bg-slate-800/50 border border-[var(--border-color)] rounded-lg px-4 py-2.5 text-slate-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition" placeholder="Masukkan API Key Anda di sini">
+                                    <p class="text-xs text-[var(--text-secondary)] mt-2">API Key Anda disimpan dengan aman di browser Anda dan tidak pernah dikirim ke server kami.</p>
+                                </div>
+                                <div id="api-key-status" class="text-sm"></div>
+                                <div class="flex space-x-4">
+                                    <button id="save-api-key" class="flex-1 group relative inline-flex items-center justify-center px-6 py-3 font-semibold rounded-lg text-white overflow-hidden">
+                                        <span class="absolute w-full h-full bg-[var(--accent-gradient)] bg-[200%] group-hover:bg-[100%] transition-all duration-500"></span>
+                                        <i data-lucide="save" class="w-5 h-5 mr-3 relative"></i>
+                                        <span class="relative">Simpan API Key</span>
+                                    </button>
+                                    <button id="delete-api-key" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg px-6 py-3 flex items-center justify-center">
+                                        <i data-lucide="trash-2" class="w-5 h-5 mr-3"></i>
+                                        Hapus API Key
+                                    </button>
+                                </div>
+                            </div>
+                        `
                     }
                 };
                 
@@ -416,32 +490,58 @@
 
                 async function callGeminiAPI(prompt, toolTitle) {
                     const outputElement = document.getElementById('output-container');
-                    if (!outputElement) return;
+                    const apiKey = localStorage.getItem('googleAiApiKey');
+                    if (!apiKey) {
+                        outputElement.innerHTML = `<div class="text-center text-yellow-300"><p>API Key Google AI Studio tidak ditemukan.</p><p>Silakan masukkan API Key Anda di menu <strong>Pengaturan</strong> untuk melanjutkan.</p></div>`;
+                        return;
+                    }
 
                     outputElement.innerHTML = `<div class="flex flex-col justify-center items-center p-10 h-full"><div class="loader"></div><p class="mt-6 text-[var(--text-secondary)]">AI sedang meracik strategi...</p></div>`;
                     chatHistory.push({ role: "user", parts: [{ text: prompt }] });
 
                     const payload = { contents: chatHistory };
-                    const apiKey = "";
                     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
                     try {
                         const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                        if (!response.ok) throw new Error(`API request failed: ${response.status}`);
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error.message || `API request failed: ${response.status}`);
+                        }
                         const result = await response.json();
                         
                         if (result.candidates?.[0]?.content?.parts?.[0]) {
                             const rawText = result.candidates[0].content.parts[0].text;
                             chatHistory.push(result.candidates[0].content);
                             
-                            let htmlText = rawText
-                                .replace(/## (.*)/g, '<h2>$1</h2>')
-                                .replace(/### (.*)/g, '<h3><span>$1</span></h3>')
-                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                                .replace(/^\* (.*)/gm, '<li>$1</li>');
-                            htmlText = htmlText.replace(/(<li>.*?<\/li>)+/gs, '<ul>$&</ul>');
+                            const lines = rawText.split('\n');
+                            let htmlOutput = '';
+                            let inList = false;
+
+                            for (const line of lines) {
+                                const trimmedLine = line.trim();
+                                if (trimmedLine.startsWith('## ')) {
+                                    if (inList) { htmlOutput += '</ul>'; inList = false; }
+                                    htmlOutput += `<h2>${trimmedLine.substring(3)}</h2>`;
+                                } else if (trimmedLine.startsWith('### ')) {
+                                    if (inList) { htmlOutput += '</ul>'; inList = false; }
+                                    htmlOutput += `<h3><span>${trimmedLine.substring(4)}</span></h3>`;
+                                } else if (trimmedLine.startsWith('* ') || trimmedLine.match(/^\d+\. /)) {
+                                    if (!inList) { htmlOutput += '<ul>'; inList = true; }
+                                    let listItem = trimmedLine.replace(/^\* |^\d+\. /, '');
+                                    listItem = listItem.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    htmlOutput += `<li>${listItem}</li>`;
+                                } else if (trimmedLine.length > 0) {
+                                    if (inList) { htmlOutput += '</ul>'; inList = false; }
+                                    let paragraph = trimmedLine.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                                    htmlOutput += `<p>${paragraph}</p>`;
+                                } else {
+                                    if (inList) { htmlOutput += '</ul>'; inList = false; }
+                                }
+                            }
+                            if (inList) { htmlOutput += '</ul>'; }
                             
-                            outputElement.innerHTML = `<div class="prose-aurora max-w-none">${htmlText}</div>`;
+                            outputElement.innerHTML = `<div class="prose-aurora max-w-none">${htmlOutput}</div>`;
                             
                             const copyButton = document.getElementById('copy-button');
                             const pdfButton = document.getElementById('export-pdf-button');
@@ -458,7 +558,7 @@
                         }
                     } catch (error) {
                         console.error("Error calling Gemini API:", error);
-                        outputElement.innerHTML = `<div class="text-red-400 text-center">Terjadi kesalahan saat menghubungi AI.</div>`;
+                        outputElement.innerHTML = `<div class="text-red-400 text-center">Terjadi kesalahan: ${error.message}</div>`;
                     }
                 }
 
@@ -467,7 +567,7 @@
                     if (!tool) { console.error(`Tool with id "${toolId}" not found.`); return; }
                     
                     chatHistory = [];
-                    if(toolId === 'help-center') {
+                    if (toolId === 'help-center' || toolId === 'settings') {
                         toolContent.innerHTML = `
                         <div class="max-w-5xl mx-auto">
                             <div class="mb-8"><h2 class="text-4xl font-extrabold text-white">${tool.title}</h2><p class="mt-2 text-lg text-[var(--text-secondary)]">${tool.description}</p></div>
@@ -475,6 +575,49 @@
                                 ${tool.content}
                             </div>
                         </div>`;
+                        
+                        if (toolId === 'settings') {
+                            const apiKeyInput = document.getElementById('api-key-input');
+                            const saveButton = document.getElementById('save-api-key');
+                            const deleteButton = document.getElementById('delete-api-key');
+                            const statusDiv = document.getElementById('api-key-status');
+                            
+                            const currentKey = localStorage.getItem('googleAiApiKey');
+                            if (currentKey) {
+                                apiKeyInput.value = currentKey;
+                                statusDiv.textContent = 'API Key sudah tersimpan.';
+                                statusDiv.className = 'text-green-400 text-sm';
+                            } else {
+                                statusDiv.textContent = 'API Key belum diatur.';
+                                statusDiv.className = 'text-yellow-400 text-sm';
+                            }
+
+                            saveButton.addEventListener('click', () => {
+                                const newKey = apiKeyInput.value.trim();
+                                if (newKey) {
+                                    localStorage.setItem('googleAiApiKey', newKey);
+                                    statusDiv.textContent = 'API Key berhasil disimpan! Anda akan dialihkan...';
+                                    statusDiv.className = 'text-green-400 text-sm';
+                                    checkApiKey();
+                                    setTimeout(() => {
+                                        document.querySelector('.nav-item[data-tool="keyword-genius"]').click();
+                                    }, 1500);
+                                } else {
+                                    statusDiv.textContent = 'Kolom API Key tidak boleh kosong.';
+                                    statusDiv.className = 'text-red-400 text-sm';
+                                }
+                            });
+
+                            deleteButton.addEventListener('click', () => {
+                                localStorage.removeItem('googleAiApiKey');
+                                apiKeyInput.value = '';
+                                statusDiv.textContent = 'API Key berhasil dihapus.';
+                                statusDiv.className = 'text-yellow-400 text-sm';
+                                checkApiKey();
+                            });
+                        }
+
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
                         return;
                     }
 
@@ -521,24 +664,20 @@
                     lucide.createIcons();
                 }
 
-                mainNav.addEventListener('click', handleNavClick);
-                helpButton.addEventListener('click', handleNavClick);
-
-                function handleNavClick(e) {
+                sidebar.addEventListener('click', (e) => {
                     const navLink = e.target.closest('.nav-item');
-                    if (navLink) {
+                    if (navLink && navLink.id !== 'logout-button') {
                         e.preventDefault();
                         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
                         navLink.classList.add('active');
                         renderTool(navLink.dataset.tool);
                     }
-                }
-
+                });
+                
+                checkApiKey();
                 const defaultToolLink = document.querySelector('.nav-item[data-tool="keyword-genius"]');
                 if (defaultToolLink) {
                     defaultToolLink.click();
-                } else {
-                    toolContent.innerHTML = `<div class="text-center p-8"><h2 class="text-2xl font-bold text-white">Error</h2><p class="text-slate-400">Gagal memuat alat default.</p></div>`;
                 }
             }
         });
