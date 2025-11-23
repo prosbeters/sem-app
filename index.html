@@ -71,10 +71,16 @@
              background: linear-gradient(90deg, #a855f7, #ec4899);
              -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
-        .prose-aurora p { color: #b0b8c1; line-height: 1.7; margin-bottom: 1rem; }
+        /* Perbaikan: Menambahkan text-align: justify untuk kerapian dokumen */
+        .prose-aurora p { 
+            color: #b0b8c1; 
+            line-height: 1.8; 
+            margin-bottom: 1rem; 
+            text-align: justify; 
+        }
         .prose-aurora strong { color: var(--text-primary); }
         .prose-aurora ul { list-style: none; padding-left: 0; margin-top: 1rem;}
-        .prose-aurora li { position: relative; padding-left: 1.75rem; margin-bottom: 0.75rem; color: #b0b8c1; }
+        .prose-aurora li { position: relative; padding-left: 1.75rem; margin-bottom: 0.75rem; color: #b0b8c1; text-align: justify; }
         .prose-aurora li::before {
             content: '✓';
             position: absolute; left: 0; top: 2px; font-weight: 600;
@@ -87,10 +93,6 @@
             margin: 0;
             font-size: 85%;
             border-radius: 6px;
-        }
-        .prose-aurora a {
-            color: #58a6ff;
-            text-decoration: underline;
         }
         .loader {
             width: 56px; height: 56px; border-radius: 50%; display: inline-block; position: relative;
@@ -323,7 +325,7 @@
                         </ul>
 
                         <h4><strong>4. Campaign Planner</strong></h4>
-                        <p><strong>Gunanya untuk apa?</strong> Anggap ini sebagai arsitek kampanye iklan Anda. Alat ini akan membuatkan cetak biru (blueprint) agar iklan Anda terstruktur dengan rapi dan efektif.</p>
+                        <p><strong>Gunanya untuk apa?</strong> Anggap ini sebagai arsitek kampanye iklan Anda. Alat ini akan membuatkan cetak biru (blueprint) agar struktur iklan Anda di Google terstruktur dengan rapi dan efektif.</p>
                         <ul>
                             <li><strong>Cara Pakai:</strong> Masukkan topik utama kampanye Anda, misalnya \`jasa fotografi pre-wedding\`, lalu klik "Rencanakan".</li>
                             <li><strong>Hasilnya Seperti Apa?</strong> Sebuah rencana yang berisi saran nama kampanye dan pengelompokan iklan (Ad Group) yang logis, lengkap dengan ide kata kunci di dalamnya.</li>
@@ -347,7 +349,7 @@
                         handler: (form) => {
                             const topic = form.querySelector('#keyword-topic').value;
                             if (!topic) { showError('Harap masukkan topik terlebih dahulu.'); return null; }
-                            return `Sebagai ahli SEM, berikan saya riset kata kunci untuk topik: "${topic}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
+                            return `Sebagai ahli SEM, berikan saya riset kata kunci untuk topik: "${topic}". Gunakan gaya bahasa yang formal dan profesional namun mudah dimengerti. Format jawaban menggunakan Markdown. Penting: Pastikan teks rata kiri-kanan (justified) dengan menggunakan paragraf yang panjang dan deskriptif jika memungkinkan.`;
                         }
                     },
                     'ad-copy-crafter': {
@@ -359,7 +361,7 @@
                             const product = form.querySelector('#ad-product').value;
                             const audience = form.querySelector('#ad-audience').value;
                             if (!product || !audience) { showError('Harap lengkapi semua field.'); return null; }
-                            return `Sebagai copywriter ahli Google Ads, buatkan 3 set variasi teks iklan untuk produk "${product}" yang menargetkan "${audience}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
+                            return `Sebagai copywriter ahli Google Ads, buatkan 3 set variasi teks iklan untuk produk "${product}" yang menargetkan "${audience}". Gunakan gaya bahasa yang formal, profesional, dan menjual. Format jawaban menggunakan Markdown.`;
                         }
                     },
                     'audience-persona': {
@@ -370,7 +372,7 @@
                         handler: (form) => {
                             const product = form.querySelector('#persona-product').value;
                             if (!product) { showError('Harap jelaskan produk Anda.'); return null; }
-                            return `Sebagai marketing strategist, buatkan profil persona audiens yang detail untuk bisnis: "${product}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
+                            return `Sebagai marketing strategist, buatkan profil persona audiens yang detail untuk bisnis: "${product}". Gunakan gaya bahasa yang formal dan profesional. Berikan analisis mendalam untuk setiap bagian. Format jawaban menggunakan Markdown.`;
                         }
                     },
                     'campaign-planner': {
@@ -381,7 +383,7 @@
                         handler: (form) => {
                             const topic = form.querySelector('#campaign-topic').value;
                             if (!topic) { showError('Harap masukkan topik kampanye.'); return null; }
-                            return `Sebagai manajer SEM, buatkan rencana struktur kampanye Google Ads untuk topik: "${topic}". Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
+                            return `Sebagai manajer SEM, buatkan rencana struktur kampanye Google Ads untuk topik: "${topic}". Gunakan gaya bahasa yang formal dan profesional. Format jawaban menggunakan Markdown.`;
                         }
                     },
                     'competitor-analyzer': {
@@ -392,7 +394,7 @@
                         handler: (form) => {
                             const url = form.querySelector('#competitor-url').value;
                             if (!url) { showError('Harap masukkan URL kompetitor.'); return null; }
-                            return `Sebagai seorang ahli strategi SEM kelas dunia, lakukan analisis mendalam terhadap situs web di URL: "${url}". Berikan laporan intelijen kompetitif. Format jawaban Anda menggunakan Markdown dengan heading (##, ###), bullet points (*), dan bold (**). Pastikan ada baris kosong antar paragraf.`;
+                            return `Sebagai seorang ahli strategi SEM kelas dunia, lakukan analisis mendalam terhadap situs web di URL: "${url}". Berikan laporan intelijen kompetitif dengan gaya bahasa formal dan profesional. Format jawaban menggunakan Markdown.`;
                         }
                     },
                     'help-center': {
